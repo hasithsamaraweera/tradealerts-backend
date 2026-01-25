@@ -1,0 +1,5 @@
+telethon
+pytesseract
+opencv-python
+numpy
+firebase-admin
