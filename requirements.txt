@@ -1,5 +1,5 @@
 telethon
 pytesseract
-opencv-python-headle
+opencv-python-headless
 numpy
 firebase-admin
