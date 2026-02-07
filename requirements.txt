@@ -1,5 +1,5 @@
 telethon
 pytesseract
 opencv-python-headless==4.5.5.64
-numpy
+numpy==1.23.5
 firebase-admin
