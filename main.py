@@ -5,20 +5,22 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # ===============================
-# CONFIG (from Railway Variables)
+# CONFIG (hardcoded for local run)
 # ===============================
-api_id = int(os.getenv("API_ID"))
-api_hash = os.getenv("API_HASH")
-group_username = int(os.getenv("GROUP_USERNAME"))
+api_id = 12835147
+api_hash = "c5c7a2582f1f32c244c5ef465e13fbfc"
+group_username = -4877905193  # group ID
 
-# Firebase setup from env variable
-firebase_json = json.loads(os.getenv("FIREBASE_JSON"))
-cred = credentials.Certificate(firebase_json)
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+# Firebase setup (skip locally if not needed)
+firebase_json = os.getenv("FIREBASE_JSON")
+if firebase_json:
+    cred = credentials.Certificate(json.loads(firebase_json))
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+else:
+    db = None
 
 loss_count = 0
-pending_entries = []
 last_entry_text = None
 last_reset_date = datetime.date.today()
 
@@ -26,6 +28,7 @@ last_reset_date = datetime.date.today()
 # ALERT DOC HELPERS
 # ===============================
 def set_current_alert(active: bool, message: str = "", loss_count: int = 0):
+    if not db: return
     now = datetime.datetime.now()
     db.collection("alerts").document("current").set({
         "active": active,
@@ -37,6 +40,7 @@ def set_current_alert(active: bool, message: str = "", loss_count: int = 0):
     })
 
 def get_alert_threshold():
+    if not db: return 2
     doc = db.collection("settings").document("config").get()
     if doc.exists:
         return doc.to_dict().get("alert_threshold", 2)
@@ -125,13 +129,14 @@ async def handler(event):
 
             now = datetime.datetime.now()
             today_str = now.strftime("%Y-%m-%d")
-            db.collection("signals").document(today_str).collection("entries").add({
-                "entry": last_entry_text,
-                "result": result_text,
-                "timestamp": int(now.timestamp()*1000),
-                "time_str": now.strftime("%Y-%m-%d %H:%M:%S"),
-                "loss_count": loss_count
-            })
+            if db:
+                db.collection("signals").document(today_str).collection("entries").add({
+                    "entry": last_entry_text,
+                    "result": result_text,
+                    "timestamp": int(now.timestamp()*1000),
+                    "time_str": now.strftime("%Y-%m-%d %H:%M:%S"),
+                    "loss_count": loss_count
+                })
 
             last_entry_text=None
             threshold=get_alert_threshold()
