@@ -9,7 +9,7 @@ from firebase_admin import credentials, firestore
 # ===============================
 api_id = 12835147
 api_hash = "c5c7a2582f1f32c244c5ef465e13fbfc"
-group_username = -4877905193  # try replacing with "@yourgroupusername" if handler doesn't fire
+group_username = -4877905193  # replace with @username if handler doesn't fire
 
 # ✅ Let pytesseract use PATH
 pytesseract.pytesseract.tesseract_cmd = "tesseract"
@@ -163,5 +163,4 @@ async def main():
     print("🚀 Listening for signals...")
     await client.run_until_disconnected()
 
-threading.Thread(target=lambda: asyncio.run(main()),daemon=True).start()
-schedule_midnight_reset()
+asyncio.run(main())
