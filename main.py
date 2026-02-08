@@ -30,28 +30,6 @@ last_entry_text = None
 last_reset_date = datetime.date.today()
 
 # ===============================
-# ALERT DOC HELPERS
-# ===============================
-def set_current_alert(active: bool, message: str = "", loss_count: int = 0):
-    if not db: return
-    now = datetime.datetime.now()
-    db.collection("alerts").document("current").set({
-        "active": active,
-        "message": message,
-        "loss_count": loss_count,
-        "timestamp": int(now.timestamp() * 1000),
-        "time_str": now.strftime("%Y-%m-%d %H:%M:%S"),
-        "type": "LOSS_ALERT"
-    })
-
-def get_alert_threshold():
-    if not db: return 2
-    doc = db.collection("settings").document("config").get()
-    if doc.exists:
-        return doc.to_dict().get("alert_threshold", 2)
-    return 2
-
-# ===============================
 # OCR + RESULT
 # ===============================
 def extract_profit_number_from_bytes(img_bytes):
@@ -110,7 +88,8 @@ async def handler(event):
                 loss_count += 1
             elif result_text == "WIN":
                 loss_count = 0
-                set_current_alert(active=False)
+                if db:
+                    set_current_alert(active=False)
 
             now = datetime.datetime.now()
             today_str = now.strftime("%Y-%m-%d")
