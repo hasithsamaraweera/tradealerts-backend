@@ -1,8 +1,10 @@
-import os, json, asyncio, datetime, threading
+import os, json, asyncio, datetime
 from telethon import TelegramClient, events
 import pytesseract, cv2, numpy as np
 import firebase_admin
 from firebase_admin import credentials, firestore
+
+print("✅ main.py started (container is running)")
 
 # ===============================
 # CONFIG
@@ -78,29 +80,6 @@ def determine_result(value):
         return "UNKNOWN"
 
 # ===============================
-# DAILY RESET
-# ===============================
-def check_daily_reset():
-    global loss_count, last_reset_date
-    today = datetime.date.today()
-    if today != last_reset_date:
-        loss_count = 0
-        last_reset_date = today
-        print("🔄 Daily reset at midnight")
-
-def schedule_midnight_reset():
-    now = datetime.datetime.now()
-    tomorrow = now + datetime.timedelta(days=1)
-    midnight = datetime.datetime.combine(tomorrow.date(), datetime.time.min)
-    seconds_until_midnight = (midnight - now).total_seconds()
-
-    def reset_task():
-        check_daily_reset()
-        schedule_midnight_reset()
-
-    threading.Timer(seconds_until_midnight, reset_task).start()
-
-# ===============================
 # TELETHON HANDLER
 # ===============================
 client = TelegramClient("session", api_id, api_hash)
@@ -108,14 +87,13 @@ client = TelegramClient("session", api_id, api_hash)
 @client.on(events.NewMessage(chats=[group_username]))
 async def handler(event):
     global loss_count, last_entry_text
-    check_daily_reset()
 
     print("📩 Handler triggered")
     print("Raw message:", event.message.to_dict())
 
     if event.message.message:
         lines = event.message.message.split("\n")
-        if len(lines)>=2:
+        if len(lines) >= 2:
             entry_text = lines[1].strip().split()[-1]
             last_entry_text = entry_text
             print(f"New entry: {entry_text}")
@@ -128,10 +106,10 @@ async def handler(event):
             result_text = determine_result(extracted)
             print(f"Result: {result_text}")
 
-            if result_text=="LOSS":
-                loss_count+=1
-            elif result_text=="WIN":
-                loss_count=0
+            if result_text == "LOSS":
+                loss_count += 1
+            elif result_text == "WIN":
+                loss_count = 0
                 set_current_alert(active=False)
 
             now = datetime.datetime.now()
@@ -140,14 +118,14 @@ async def handler(event):
                 db.collection("signals").document(today_str).collection("entries").add({
                     "entry": last_entry_text,
                     "result": result_text,
-                    "timestamp": int(now.timestamp()*1000),
+                    "timestamp": int(now.timestamp() * 1000),
                     "time_str": now.strftime("%Y-%m-%d %H:%M:%S"),
                     "loss_count": loss_count
                 })
 
-            last_entry_text=None
-            threshold=get_alert_threshold()
-            if loss_count>=threshold:
+            last_entry_text = None
+            threshold = get_alert_threshold()
+            if loss_count >= threshold:
                 set_current_alert(
                     active=True,
                     message=f"{threshold} or more consecutive losses detected!",
@@ -158,9 +136,9 @@ async def handler(event):
 # RUN
 # ===============================
 async def main():
-    print("✅ main.py started")
+    print("🔑 Starting Telegram client...")
     await client.start()
-    print("🚀 Listening for signals...")
+    print("🚀 Connected to Telegram, listening for signals...")
     await client.run_until_disconnected()
 
 asyncio.run(main())
