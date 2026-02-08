@@ -11,7 +11,7 @@ api_id = 12835147
 api_hash = "c5c7a2582f1f32c244c5ef465e13fbfc"
 group_username = -4877905193  # group ID
 
-# ✅ Explicitly set tesseract binary path
+# ✅ Let pytesseract use PATH (no hardcoding)
 pytesseract.pytesseract.tesseract_cmd = "tesseract"
 
 # Firebase setup (skip locally if not needed)
