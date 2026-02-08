@@ -5,16 +5,16 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # ===============================
-# CONFIG (hardcoded for local run)
+# CONFIG
 # ===============================
 api_id = 12835147
 api_hash = "c5c7a2582f1f32c244c5ef465e13fbfc"
-group_username = -4877905193  # group ID
+group_username = -4877905193  # try replacing with "@yourgroupusername" if handler doesn't fire
 
-# ✅ Let pytesseract use PATH (no hardcoding)
+# ✅ Let pytesseract use PATH
 pytesseract.pytesseract.tesseract_cmd = "tesseract"
 
-# Firebase setup (skip locally if not needed)
+# Firebase setup
 firebase_json = os.getenv("FIREBASE_JSON")
 if firebase_json:
     cred = credentials.Certificate(json.loads(firebase_json))
@@ -105,10 +105,13 @@ def schedule_midnight_reset():
 # ===============================
 client = TelegramClient("session", api_id, api_hash)
 
-@client.on(events.NewMessage(chats=group_username))
+@client.on(events.NewMessage(chats=[group_username]))
 async def handler(event):
     global loss_count, last_entry_text
     check_daily_reset()
+
+    print("📩 Handler triggered")
+    print("Raw message:", event.message.to_dict())
 
     if event.message.message:
         lines = event.message.message.split("\n")
@@ -120,6 +123,7 @@ async def handler(event):
     if event.message.media:
         img_bytes = await event.message.download_media(bytes)
         extracted = extract_profit_number_from_bytes(img_bytes)
+        print("OCR extracted:", extracted)
         if extracted and last_entry_text:
             result_text = determine_result(extracted)
             print(f"Result: {result_text}")
@@ -154,6 +158,7 @@ async def handler(event):
 # RUN
 # ===============================
 async def main():
+    print("✅ main.py started")
     await client.start()
     print("🚀 Listening for signals...")
     await client.run_until_disconnected()
